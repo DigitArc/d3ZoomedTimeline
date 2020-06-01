@@ -5,13 +5,15 @@ const _dayCountBetweenDates = (date1, date2) => {
   return Math.abs(differenceInDays);
 };
 
-export const clusterBuilder = (data) => {
+export const clusterBuilder = (data, clusterDay) => {
   const clusterData = [];
   for (let i = 0; i < data.length; i++) {
     const currPoint = data[i];
     const singleCluster = { type: "cluster", children: [] };
     for (let j = i + 1; j < data.length; j++) {
-      if (_dayCountBetweenDates(data[j]["date"], data[i]["date"]) < 40) {
+      if (
+        _dayCountBetweenDates(data[j]["date"], data[i]["date"]) < clusterDay
+      ) {
         if (!data[j]["used"]) {
           singleCluster["children"].push(data[j]);
           data[j]["used"] = true;
@@ -46,8 +48,14 @@ export const clusterBuilder = (data) => {
       );
       // const middlePoint = total / clusterData[i]["children"].length;
       // clusterData[i].middlePoint = parseInt(middlePoint, 10);
+      // REMOVE USED PROPERTY
       const middlePoint = clusterData[i]["children"][0]["date"];
-      clusterData[i].middlePoint = middlePoint;
+      clusterData[i].date = middlePoint;
+      for (let j = 0; j < clusterData[i]["children"].length; j++) {
+        delete clusterData[i]["children"][j].used;
+      }
+    } else {
+      delete clusterData[i].used;
     }
   }
   return clusterData;

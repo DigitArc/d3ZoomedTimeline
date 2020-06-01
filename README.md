@@ -20,4 +20,4 @@ createTimeline(selector, onZoom, onSelectData);
 
 ## Example Usage
 
-![alt text](https://github.com/DigitArc/d3ZoomedTimeline/blob/master/timeline-video.gif)
+![alt text](https://github.com/DigitArc/d3ZoomedTimeline/blob/master/timeline-video.gif?raw=true)

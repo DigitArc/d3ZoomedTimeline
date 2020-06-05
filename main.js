@@ -67,7 +67,8 @@ export const createTimeline = (selector, onZoom, onElementClick) => {
         40 / currentZoom
       );
       const new_xScale = d3.event.transform.rescaleX(xscale);
-      setCurrentScale(new_xScale);
+
+      setCurrentScale(d3.event.transform);
 
       d3.selectAll("#data-container-rect").remove();
       const newRectEls = mainSvg

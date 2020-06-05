@@ -5,12 +5,20 @@ import {
   rescaleLinearGradientOnZoom,
 } from "./utilities/add-defs";
 import { clusterBuilder } from "./utilities/cluster-builder";
+import { handleDateChange } from "./utilities/handleDateChange";
+import { width, height, xscale, x_axis } from "./utilities/globalVals";
+import { styleAxis } from "./utilities/styleAxis";
+import {
+  selectedDate,
+  setCurrentZoom,
+  currentZoom,
+  setCurrentScale,
+  setXScale,
+} from "./utilities/globalVals";
 
 export const createTimeline = (selector, onZoom, onElementClick) => {
   const clusteredData = clusterBuilder(notificationsData, 40);
 
-  const width = 1000;
-  const height = 300;
   const svgContainer = d3
     .select(selector)
     .append("svg")
@@ -20,22 +28,10 @@ export const createTimeline = (selector, onZoom, onElementClick) => {
 
   addMainPathLinearDef(mainSvg);
 
-  const xscale = d3
-    .scaleTime()
-    .domain(d3.extent([new Date(2020, 0, 1), new Date(2020, 11, 31)]))
-    .range([0, width - 100]);
-
-  const pointToDateScale = d3
-    .scaleLinear()
-    .domain([0, 900])
-    .range([new Date(2020, 0, 1), new Date(2020, 11, 31)]);
-  // console.log(pointToDateScale(275));
-
-  const x_axis = d3.axisBottom().scale(xscale);
-
   const xAxisTranslate = height / 3.5;
   const gX = mainSvg
     .append("g")
+    .classed("x axis", true)
     .attr("transform", "translate(50, " + xAxisTranslate + ")")
     .call(x_axis);
 
@@ -47,20 +43,32 @@ export const createTimeline = (selector, onZoom, onElementClick) => {
     ])
     .scaleExtent([1, 50])
     .on("zoom", () => {
+      const pointToDateScale = d3
+        .scaleLinear()
+        .domain([0, 900])
+        .range([
+          new Date(selectedDate.getFullYear(), 0, 1),
+          new Date(selectedDate.getFullYear(), 11, 31),
+        ]);
       // zoom level is between 1 - 50;
-      const zoomLevel = d3.event.transform.k;
+      setCurrentZoom(d3.event.transform.k);
+
       // AXIS STARTING DATE
       const axisStartDate = pointToDateScale(
-        -d3.event.transform.x / d3.event.transform.k
+        -d3.event.transform.x / currentZoom
       );
       const axisEndDate = pointToDateScale(
-        -d3.event.transform.x / d3.event.transform.k +
-          900 / d3.event.transform.k
+        -d3.event.transform.x / currentZoom + 900 / currentZoom
       );
       onZoom(axisStartDate, axisEndDate);
 
-      const newClusterData = clusterBuilder(notificationsData, 40 / zoomLevel);
+      const newClusterData = clusterBuilder(
+        notificationsData,
+        40 / currentZoom
+      );
       const new_xScale = d3.event.transform.rescaleX(xscale);
+      setCurrentScale(new_xScale);
+
       d3.selectAll("#data-container-rect").remove();
       const newRectEls = mainSvg
         .selectAll(".rect")
@@ -152,12 +160,13 @@ export const createTimeline = (selector, onZoom, onElementClick) => {
       mainSvg
         .selectAll("circle")
         .filter(function (d, i) {
-          const todaysExtent = new_xScale(new Date());
-          const transformAtt = this.parentNode.getAttribute("transform");
-          const parentTransformationVal = +transformAtt.match(
-            /[0-9]+[.][0-9]+/
-          )[0];
-          return parentTransformationVal <= todaysExtent ? false : true;
+          return d <= new Date() ? false : true;
+          // const todaysExtent = new_xScale(new Date());
+          // const transformAtt = this.parentNode.getAttribute("transform");
+          // const parentTransformationVal = +transformAtt.match(
+          //   /[0-9]+[.][0-9]+/
+          // )[0];
+          // return parentTransformationVal <= todaysExtent ? false : true;
         })
         .style("fill", "#afafaf");
       // TICK TEXT COLOR TRANSFORMATION
@@ -165,12 +174,13 @@ export const createTimeline = (selector, onZoom, onElementClick) => {
         .selectAll("g .tick")
         .selectAll("text")
         .filter(function (d, i) {
-          const todaysExtent = new_xScale(new Date());
-          const transformAtt = this.parentNode.getAttribute("transform");
-          const parentTransformationVal = +transformAtt.match(
-            /[0-9]+[.][0-9]+/
-          )[0];
-          return parentTransformationVal <= todaysExtent ? false : true;
+          return d <= new Date() ? false : true;
+          // const todaysExtent = new_xScale(new Date());
+          // const transformAtt = this.parentNode.getAttribute("transform");
+          // const parentTransformationVal = +transformAtt.match(
+          //   /[0-9]+[.][0-9]+/
+          // )[0];
+          // return parentTransformationVal <= todaysExtent ? false : true;
         })
         .style("fill", "#afafaf");
       // TICK LINE COLOR TRANSFORMATION
@@ -178,12 +188,13 @@ export const createTimeline = (selector, onZoom, onElementClick) => {
         .selectAll("g .tick")
         .selectAll("line")
         .filter(function (d, i) {
-          const todaysExtent = new_xScale(new Date());
-          const transformAtt = this.parentNode.getAttribute("transform");
-          const parentTransformationVal = +transformAtt.match(
-            /[0-9]+[.][0-9]+/
-          )[0];
-          return parentTransformationVal <= todaysExtent ? false : true;
+          return d <= new Date() ? false : true;
+          // const todaysExtent = new_xScale(new Date());
+          // const transformAtt = this.parentNode.getAttribute("transform");
+          // const parentTransformationVal = +transformAtt.match(
+          //   /[0-9]+[.][0-9]+/
+          // )[0];
+          // return parentTransformationVal <= todaysExtent ? false : true;
         })
         .style("stroke", "#afafaf");
       rescaleLinearGradientOnZoom(new_xScale);
@@ -267,61 +278,13 @@ export const createTimeline = (selector, onZoom, onElementClick) => {
     .style("font-size", "14px")
     .style("fill", "white")
     .text((d) => d.children.length);
-
-  mainSvg
-    .selectAll("g .tick")
-    .selectAll("line")
-    .attr("stroke", "#43A0EE")
-    .style("opacity", 0.4)
-    .attr("y2", 100)
-    .attr("y1", -100);
-
-  mainSvg
-    .selectAll("g .tick")
-    .append("circle")
-    .style("fill", "#43A0EE")
-    .attr("r", 3.5);
-
-  mainSvg
-    .selectAll("g .tick")
-    .selectAll("text")
-    .style("fill", "#43A0EE")
-    .style("font-size", "8px");
-
-  mainSvg.selectAll(".domain").attr("stroke", "url(#main-path-gradient)");
-
-  // CIRCLE COLOR TRANSFORMATION
-  mainSvg
-    .selectAll("circle")
-    .filter(function (d, i) {
-      const todaysExtent = xscale(new Date());
-      const transformAtt = this.parentNode.getAttribute("transform");
-      const parentTransformationVal = +transformAtt.match(/[0-9]+[.][0-9]+/)[0];
-      return parentTransformationVal <= todaysExtent ? false : true;
-    })
-    .style("fill", "#afafaf");
-
-  // TEXT COLOR TRANSFORMATION
-  mainSvg
-    .selectAll("g .tick")
-    .selectAll("text")
-    .filter(function (d, i) {
-      const todaysExtent = xscale(new Date());
-      const transformAtt = this.parentNode.getAttribute("transform");
-      const parentTransformationVal = +transformAtt.match(/[0-9]+[.][0-9]+/)[0];
-      return parentTransformationVal <= todaysExtent ? false : true;
-    })
-    .style("fill", "#afafaf");
-
-  // TICK LINE COLOR TRANSFORMATION
-  mainSvg
-    .selectAll("g .tick")
-    .selectAll("line")
-    .filter(function (d, i) {
-      const todaysExtent = xscale(new Date());
-      const transformAtt = this.parentNode.getAttribute("transform");
-      const parentTransformationVal = +transformAtt.match(/[0-9]+[.][0-9]+/)[0];
-      return parentTransformationVal <= todaysExtent ? false : true;
-    })
-    .style("stroke", "#afafaf");
+  styleAxis(mainSvg, xscale);
 };
+
+createTimeline(
+  "#container",
+  () => console.log("zoom"),
+  () => console.log("zoom")
+);
+
+handleDateChange();

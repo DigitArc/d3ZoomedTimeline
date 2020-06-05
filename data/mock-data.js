@@ -39,4 +39,8 @@ export const notificationsData = [
     id: "Z-9872-R",
     date: new Date().setMonth(8, 21),
   },
+  {
+    id: "Z-9432-Z",
+    date: new Date(2021, 2, 23),
+  },
 ];
